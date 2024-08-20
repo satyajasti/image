@@ -1,0 +1,75 @@
+pip install pandas matplotlib plotly openpyxl
+import pandas as pd
+
+# Load data from Excel file
+file_path = 'your_mapping_sheet.xlsx'  # Replace with your actual file path
+sheet_name = 'Sheet1'  # Replace with your actual sheet name
+
+df = pd.read_excel(file_path, sheet_name=sheet_name)
+
+# Preview the data
+print(df.head())
+
+
+# Count the number of columns per source table
+columns_per_table = df.groupby('Source Table')['Column Name'].count()
+
+# Count the constraints per table
+constraints_per_table = df.groupby(['Source Table', 'Constraint'])['Column Name'].count().unstack().fillna(0)
+
+# Print the summary
+print(columns_per_table)
+print(constraints_per_table)
+
+
+import matplotlib.pyplot as plt
+
+# Bar chart for number of columns per source table
+plt.figure(figsize=(10, 6))
+columns_per_table.plot(kind='bar', color='skyblue')
+plt.title('Number of Columns per Source Table')
+plt.xlabel('Source Table')
+plt.ylabel('Number of Columns')
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+
+
+# Stacked bar chart for constraints per source table
+constraints_per_table.plot(kind='bar', stacked=True, figsize=(10, 6), colormap='tab20')
+plt.title('Constraints per Source Table')
+plt.xlabel('Source Table')
+plt.ylabel('Number of Columns')
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+
+
+import plotly.graph_objects as go
+
+# Create a Sankey diagram
+source_tables = df['Source Table'].unique()
+target_columns = df['Target Table'].unique()
+
+# Mapping for Sankey diagram
+source_indices = df['Source Table'].apply(lambda x: list(source_tables).index(x))
+target_indices = df['Target Table'].apply(lambda x: len(source_tables) + list(target_columns).index(x))
+
+sankey = go.Sankey(
+    node=dict(
+        pad=15,
+        thickness=20,
+        line=dict(color="black", width=0.5),
+        label=list(source_tables) + list(target_columns)
+    ),
+    link=dict(
+        source=source_indices,
+        target=target_indices,
+        value=[1] * len(df)  # Assuming each row represents one column
+    )
+)
+
+fig = go.Figure(sankey)
+fig.update_layout(title_text="Sankey Diagram: Source to Target Table Mapping", font_size=10)
+fig.show()
